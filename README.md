@@ -1,4 +1,6 @@
-# domoticz-Xiaomi-Led-Lamp
+# Domoticz Plugin for Philips ZhiRui E27 bulb aka Xiaomi Philips LED Ball Lamp
+
+
 Domoticz Plugin for Philips ZhiRui E27 bulb aka Xiaomi Philips LED Ball Lamp
 
 base on : https://github.com/kofec/domoticz-AirPurifier

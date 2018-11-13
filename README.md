@@ -26,3 +26,6 @@ next evolution :
 Use Domoticz native CCCW widget
 
 Use set_brightness_and_color_temperature(brightness, cct) = Set brightness level and the correlated color temperature. instead of 2 different command
+
+Use Bulb Scene
+

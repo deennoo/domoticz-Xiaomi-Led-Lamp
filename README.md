@@ -9,16 +9,16 @@ ONLY TESTED ON LINUX
 
 
 - Install Python-miio 
-
+'''
 sudo pip3 install -U python-miio
-
+'''
 
 - Goes on your domoticz and clone this plugin
-
+'''
 cd YOUR_DOMOTICZ_PATH/plugins
 
 git clone https://github.com/deennoo/domoticz-Xiaomi-Led-Lamp.git
-
+'''
 
 
 Next evolution : 

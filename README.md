@@ -8,7 +8,7 @@ ONLY TESTED ON LINUX
 
 1 - install Python-miio 
 
-pip3 install -U python-miio
+sudo pip3 install -U python-miio
 
 
 Then goes on your domoticz and clone this plugin

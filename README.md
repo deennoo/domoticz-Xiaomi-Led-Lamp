@@ -21,7 +21,7 @@ git clone https://github.com/deennoo/domoticz-Xiaomi-Led-Lamp.git
 ```
 
 
-Next evolution : 
+- Next evolution : 
 
 Use Domoticz native CCCW widget
 

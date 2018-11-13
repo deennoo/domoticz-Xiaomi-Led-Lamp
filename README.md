@@ -3,17 +3,17 @@
 
 Domoticz Plugin for Philips ZhiRui E27 bulb aka Xiaomi Philips LED Ball Lamp
 
-base on : https://github.com/kofec/domoticz-AirPurifier
+Fully base on : https://github.com/kofec/domoticz-AirPurifier
 
 ONLY TESTED ON LINUX
 
 
-1 - install Python-miio 
+- Install Python-miio 
 
 sudo pip3 install -U python-miio
 
 
-Then goes on your domoticz and clone this plugin
+- Goes on your domoticz and clone this plugin
 
 cd YOUR_DOMOTICZ_PATH/plugins
 
@@ -21,7 +21,7 @@ git clone https://github.com/deennoo/domoticz-Xiaomi-Led-Lamp.git
 
 
 
-next evolution : 
+Next evolution : 
 
 Use Domoticz native CCCW widget
 

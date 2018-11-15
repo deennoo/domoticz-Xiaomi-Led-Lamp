@@ -8,10 +8,10 @@
 # v0.1.0 - initial version,
 # fetching data Xiaomi Philips LED Ball Lamp print(MyBulb.status()) "<PhilipsBulbStatus power=on, brightness=9, color_temperature=9, scene=0, delay_off_countdown=0>"
 
-# v0.1.1 - Add initial version of switches, update to nie version of python-miio
+# v0.1.1 - Add Scenes control
 # 
 """
-<plugin key="XiaomiPhilipsLEDBallLamp" name="Xiaomi Philips LED Ball Lamp" author="Deennoo" version="0.1.0" wikilink="https://github.com/rytilahti/python-miio" externallink="https://github.com/kofec/domoticz-AirPurifier">
+<plugin key="XiaomiPhilipsLEDBallLamp" name="Xiaomi Philips LED Ball Lamp" author="Deennoo" version="0.1.1" wikilink="https://github.com/rytilahti/python-miio" externallink="https://github.com/kofec/domoticz-AirPurifier">
     <params>
 		<param field="Address" label="IP Address" width="200px" required="true" default="127.0.0.1"/>
 		<param field="Mode1" label="Xiaomi Philips LED Ball Lamp token" default="" width="400px" required="true"  />
@@ -88,7 +88,7 @@ class BasePlugin:
 
     def __init__(self):
         # Consts
-        self.version = "0.1.0"
+        self.version = "0.1.1"
 
         self.EXCEPTIONS = {
             "SENSOR_NOT_FOUND":     1,

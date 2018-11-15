@@ -19,6 +19,10 @@ cd YOUR_DOMOTICZ_PATH/plugins
 
 git clone https://github.com/deennoo/domoticz-Xiaomi-Led-Lamp.git
 ```
+Give right to MyBulb.py
+```
+sudo chmod 777 /home/pi/domoticz/plugins/domoticz-Xiaomi-Led-Lamp/MyBulb.py
+```
 and restart Domoticz
 ```
 sudo service domoticz.sh restart

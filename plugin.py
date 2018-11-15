@@ -26,6 +26,7 @@
 </plugin>
 """
 import Domoticz
+import json
 import sys
 import datetime
 import socket
@@ -103,7 +104,7 @@ class BasePlugin:
         self.UNIT_WTEMP          = 2
         self.UNIT_BRIGHTNESS     = 3
         self.UNIT_SCENES         = 4
-		
+        self.UNIT_CCCW           = 5		
 
         self.nextpoll = datetime.datetime.now()
         return
@@ -130,32 +131,39 @@ class BasePlugin:
             Domoticz.Device(Name="White Temp", Unit=self.UNIT_WTEMP, Type=244, Subtype=73, Switchtype=7).Create()
             Options = {"Scenes": "|||||", "LevelNames": "Off|Bright|TV|Warm|Midnight", "LevelOffHidden": "true", "SelectorStyle": "0"}
             Domoticz.Device(Name="Scenes", Unit=self.UNIT_SCENES, Type=244, Subtype=62 , Switchtype=18, Options = Options).Create()
+            Domoticz.Device(Name="CCCW", Unit=self.UNIT_CCCW, Type=241, Subtype=8, Switchtype=7).Create()
 			
 			
             Domoticz.Log("Devices created.")
         else:
+		#on/off
             if (self.UNIT_POWER_CONTROL in Devices ):
                 Domoticz.Log("Device UNIT_POWER_CONTROL with id " + str(self.UNIT_POWER_CONTROL) + " exist")
             else:
                 Domoticz.Device(Name="Power", Unit=self.UNIT_POWER_CONTROL, TypeName="Switch").Create()
-            
+        #Brightness   
             if (self.UNIT_BRIGHTNESS in Devices ):
                 Domoticz.Log("Device UNIT_BRIGHTNESS with id " + str(self.UNIT_BRIGHTNESS) + " exist")
             else:
                 Domoticz.Device(Name="Brightness", Unit=self.UNIT_BRIGHTNESS, Type=244, Subtype=73, Switchtype=7).Create()
-			
+		#White Temp	
             if (self.UNIT_WTEMP in Devices ):
                 Domoticz.Log("Device UNIT_WTEMP with id " + str(self.UNIT_WTEMP) + " exist")
             else:
                 Domoticz.Device(Name="White Temp", Unit=self.UNIT_WTEMP, Type=244, Subtype=73, Switchtype=7).Create()
-				
+		#Scenes		
             if (self.UNIT_SCENES in Devices ):
-                Domoticz.Log("Device UNIT_sCENES with id " + str(self.UNIT_SCENES) + " exist")
+                Domoticz.Log("Device UNIT_SCENES with id " + str(self.UNIT_SCENES) + " exist")
 				
             else:
                Options = {"Scenes": "|||||", "LevelNames": "Off|Bright|TV|Warm|Midnight", "LevelOffHidden": "true", "SelectorStyle": "0"}
                Domoticz.Device(Name="Scenes", Unit=self.UNIT_SCENES, Type=244, Subtype=62 , Switchtype=18, Options = Options).Create()				
-			
+         #CCCW
+            if (self.UNIT_CCCW in Devices ):
+                Domoticz.Log("Device UNIT_CCCW with id " + str(self.UNIT_CCCW) + " exist")
+				
+            else:
+               Domoticz.Device(Name="CCCW", Unit=self.UNIT_SCENES, Type=241, Subtype=8 , Switchtype=7).Create()	
             
 
         self.onHeartbeat(fetch=False)
@@ -170,15 +178,16 @@ class BasePlugin:
     def onMessage(self, Data, Status, Extra):
         Domoticz.Log("onMessage called")
 
-    def onCommand(self, Unit, Command, Level, Hue):
+    def onCommand(self, Unit, Command, Level, Color):
         Domoticz.Log(
-            "onCommand called for Unit " + str(Unit) + ": Parameter '" + str(Command) + "', Level: " + str(Level))
+            "onCommand called for Unit " + str(Unit) + ": Parameter '" + str(Command) + "', Level: " + str(Level)+ "', Color: " + str(Color))
 
         # Parameters["Address"] - IP address, Parameters["Mode1"] - token
         commandToCall = './MyBulb.py ' + Parameters["Address"] + ' ' + Parameters["Mode1"] + ' '
+        
         if Unit == self.UNIT_POWER_CONTROL:
             commandToCall += '--power=' + str(Command).upper()
-			
+            
         elif Unit == self.UNIT_BRIGHTNESS:
             commandToCall += '--level=' + str(int(int(Level)))
 			
@@ -187,6 +196,21 @@ class BasePlugin:
 			
         elif Unit == self.UNIT_SCENES:
             commandToCall += '--scene=' + str(int(int(Level)/10))
+			
+        elif Unit == self.UNIT_CCCW:
+		#cccw cct
+          Hue_List = json.loads(Color)
+          commandToCall += '--level=' + str(int(int(Level)))
+		  
+          if Hue_List['m'] == 2:            
+            Temp = 100-((100*Hue_List['t'])/255);
+            commandToCall += '--temp=' + str(int(int(Temp)))
+		#cccw level
+		
+            
+
+			
+        
 			
         else:
             Domoticz.Log("onCommand called not found")
@@ -290,11 +314,9 @@ class BasePlugin:
                     UpdateDevice(self.UNIT_POWER_CONTROL, 1, "Bulb ON")
                 elif res.power == "off":
                     UpdateDevice(self.UNIT_POWER_CONTROL, 0, "Bulb OFF")
-
             except KeyError:
                 pass  # No power value
-
-
+				
             try:
                 UpdateDevice(self.UNIT_WTEMP, 1, str(int(res.color_temperature)))
             except KeyError:
@@ -322,20 +344,6 @@ class BasePlugin:
 
     def doUpdate(self):
         Domoticz.Log(("Starting device update"))
-        # for unit in self.variables:
-            # nV = self.variables[unit]['nValue']
-            # sV = self.variables[unit]['sValue']
-
-            ##cast float to str
-            # if isinstance(sV, float):
-                # sV = str(float("{0:.0f}".format(sV))).replace('.', ',')
-
-            ##Create device if required
-            # if sV:
-                # self.createDevice(key=unit)
-                # if unit in Devices:
-                    # Domoticz.Log(("Update unit=%d; nValue=%d; sValue=%s") % (unit, nV, sV))
-                    # Devices[unit].Update(nValue=nV, sValue=sV)
 
     def sensor_measurement(self, addressIP, token):
         """current sensor measurements"""
@@ -362,9 +370,9 @@ def onMessage(Data, Status, Extra):
     global _plugin
     _plugin.onMessage(Data, Status, Extra)
 
-def onCommand(Unit, Command, Level, Hue):
+def onCommand(Unit, Command, Level, Color):
     global _plugin
-    _plugin.onCommand(Unit, Command, Level, Hue)
+    _plugin.onCommand(Unit, Command, Level, Color)
 
 def onNotification(Name, Subject, Text, Status, Priority, Sound, ImageFile):
     global _plugin

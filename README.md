@@ -19,7 +19,10 @@ cd YOUR_DOMOTICZ_PATH/plugins
 
 git clone https://github.com/deennoo/domoticz-Xiaomi-Led-Lamp.git
 ```
-
+and restart Domoticz
+```
+sudo service domoticz.sh restart
+```
 
 - Next evolution : 
 
@@ -27,5 +30,5 @@ Use Domoticz native CCCW widget
 
 Use set_brightness_and_color_temperature(brightness, cct) = Set brightness level and the correlated color temperature. instead of 2 different command
 
-Use Bulb Scene
+
 

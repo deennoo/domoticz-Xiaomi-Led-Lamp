@@ -11,7 +11,7 @@
 # v0.1.1 - Add Scenes control
 # 
 """
-<plugin key="XiaomiPhilipsLEDBallLamp" name="Xiaomi Philips LED Ball Lamp" author="Deennoo" version="0.1.1" wikilink="https://github.com/rytilahti/python-miio" externallink="https://github.com/kofec/domoticz-AirPurifier">
+<plugin key="XiaomiPhilipsLEDBallLamp" name="Xiaomi Philips LED Ball Lamp" author="Deennoo" version="0.1.1" wikilink="https://github.com/rytilahti/python-miio" externallink="https://github.com/deennoo/domoticz-Xiaomi-Led-Lamp/tree/master">
     <params>
 		<param field="Address" label="IP Address" width="200px" required="true" default="127.0.0.1"/>
 		<param field="Mode1" label="Xiaomi Philips LED Ball Lamp token" default="" width="400px" required="true"  />

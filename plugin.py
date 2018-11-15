@@ -79,6 +79,7 @@ class BulbStatus:
         self.brightness = data["brightness"]
         self.color_temperature = data["color_temperature"]
         self.power = data["power"]
+        self.scene = data["scene"]
         for item in data.keys():
             Domoticz.Debug(str(item) + " => " + str(data[item]))
 
@@ -101,6 +102,7 @@ class BasePlugin:
         self.UNIT_POWER_CONTROL  = 1
         self.UNIT_WTEMP          = 2
         self.UNIT_BRIGHTNESS     = 3
+        self.UNIT_SCENES         = 4
 		
 
         self.nextpoll = datetime.datetime.now()
@@ -126,6 +128,10 @@ class BasePlugin:
             Domoticz.Device(Name="Power", Unit=self.UNIT_POWER_CONTROL, TypeName="Switch").Create()
             Domoticz.Device(Name="Brightness", Unit=self.UNIT_BRIGHTNESS, Type=244, Subtype=73, Switchtype=7).Create()			
             Domoticz.Device(Name="White Temp", Unit=self.UNIT_WTEMP, Type=244, Subtype=73, Switchtype=7).Create()
+            Options = {"Scenes": "|||||", "LevelNames": "Off|Bright|TV|Warm|Midnight", "LevelOffHidden": "true", "SelectorStyle": "0"}
+            Domoticz.Device(Name="Scenes", Unit=self.UNIT_SCENES, Type=244, Subtype=62 , Switchtype=18, Options = Options).Create()
+			
+			
             Domoticz.Log("Devices created.")
         else:
             if (self.UNIT_POWER_CONTROL in Devices ):
@@ -143,6 +149,12 @@ class BasePlugin:
             else:
                 Domoticz.Device(Name="White Temp", Unit=self.UNIT_WTEMP, Type=244, Subtype=73, Switchtype=7).Create()
 				
+            if (self.UNIT_SCENES in Devices ):
+                Domoticz.Log("Device UNIT_sCENES with id " + str(self.UNIT_SCENES) + " exist")
+				
+            else:
+               Options = {"Scenes": "|||||", "LevelNames": "Off|Bright|TV|Warm|Midnight", "LevelOffHidden": "true", "SelectorStyle": "0"}
+               Domoticz.Device(Name="Scenes", Unit=self.UNIT_SCENES, Type=244, Subtype=62 , Switchtype=18, Options = Options).Create()				
 			
             
 
@@ -172,6 +184,9 @@ class BasePlugin:
 			
         elif Unit == self.UNIT_WTEMP:
             commandToCall += '--temp=' + str(int(int(Level)))
+			
+        elif Unit == self.UNIT_SCENES:
+            commandToCall += '--scene=' + str(int(int(Level)/10))
 			
         else:
             Domoticz.Log("onCommand called not found")
@@ -275,6 +290,7 @@ class BasePlugin:
                     UpdateDevice(self.UNIT_POWER_CONTROL, 1, "Bulb ON")
                 elif res.power == "off":
                     UpdateDevice(self.UNIT_POWER_CONTROL, 0, "Bulb OFF")
+
             except KeyError:
                 pass  # No power value
 
@@ -283,10 +299,16 @@ class BasePlugin:
                 UpdateDevice(self.UNIT_WTEMP, 1, str(int(res.color_temperature)))
             except KeyError:
                 pass  # No White Temp Value
+				
             try:
                 UpdateDevice(self.UNIT_BRIGHTNESS, 1, str(int(res.brightness)))
             except KeyError:
                 pass  # No Brightness Value
+
+            try:
+                UpdateDevice(self.UNIT_SCENES, 1, str(int(res.scene)*10))
+            except KeyError:
+                pass  # No Scene Value
 
             self.doUpdate()
         except Exception as e:

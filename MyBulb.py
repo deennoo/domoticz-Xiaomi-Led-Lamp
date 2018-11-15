@@ -17,6 +17,8 @@ parser.add_argument('--level', type=int, choices=range(0, 100), help='choose lev
 parser.add_argument('--temp', type=int, choices=range(0, 100), help='choose White Temp')
 parser.add_argument('--power', choices=['ON', 'OFF'], help='power ON/OFF')
 parser.add_argument('--debug', action='store_true', help='if define more output is printed')
+parser.add_argument('--scene', type=int, choices=range(1, 5), help='choose scene')
+
 
 args = parser.parse_args()
 if args.debug:
@@ -28,6 +30,9 @@ if args.level:
     
 if args.temp:
 	MyBulb.set_color_temperature(args.temp)
+	
+if args.scene:
+	MyBulb.set_scene(args.scene)
 
 
 if args.power:

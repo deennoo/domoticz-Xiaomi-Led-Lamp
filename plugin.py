@@ -61,7 +61,7 @@ class ConnectionErrorException(Exception):
 class BulbStatus:
     """Container for status reports from the Xiaomi Philips Bulb."""
 
-    def __init__(self, AddressIP, token):
+    def __init__(self, AddressIP, Mode1):
         """
         Response of script:
 
@@ -69,8 +69,8 @@ class BulbStatus:
         """
 
         addressIP = str(AddressIP)
-        token = str(token)
-        data = subprocess.check_output(['bash', '-c', './MyBulb.py ' + addressIP + ' ' + token], cwd=Parameters["HomeFolder"])
+        Mode1 = str(Mode1)
+        data = subprocess.check_output(['bash', '-c', './MyBulb.py ' + addressIP + ' ' + Mode1], cwd=Parameters["HomeFolder"])
         data = str(data.decode('utf-8'))
         if Parameters["Mode6"] == 'Debug':
             Domoticz.Debug(data[:30] + " .... " + data[-30:])
@@ -182,7 +182,7 @@ class BasePlugin:
         Domoticz.Log(
             "onCommand called for Unit " + str(Unit) + ": Parameter '" + str(Command) + "', Level: " + str(Level)+ "', Color: " + str(Color))
 
-        # Parameters["Address"] - IP address, Parameters["Mode1"] - token
+        # Parameters["Address"] - IP address, Parameters["Token"] - token
         commandToCall = './MyBulb.py ' + Parameters["Address"] + ' ' + Parameters["Mode1"] + ' '
         
         if Unit == self.UNIT_POWER_CONTROL:
@@ -200,12 +200,10 @@ class BasePlugin:
         elif Unit == self.UNIT_CCCW:
 		#cccw cct
           Hue_List = json.loads(Color)
-          commandToCall += '--level=' + str(int(int(Level)))
-		  
           if Hue_List['m'] == 2:            
-            Temp = 100-((100*Hue_List['t'])/255);
-            commandToCall += '--temp=' + str(int(int(Temp)))
-		#cccw level
+           Temp = 100-((100*Hue_List['t'])/255);
+           commandToCall += '--brightemp=' + str(int(int(Level))) + ','+ str(int(int(Temp)))
+		
 		
             
 
@@ -345,9 +343,9 @@ class BasePlugin:
     def doUpdate(self):
         Domoticz.Log(("Starting device update"))
 
-    def sensor_measurement(self, addressIP, token):
+    def sensor_measurement(self, addressIP, Mode1):
         """current sensor measurements"""
-        return BulbStatus(addressIP, token)
+        return BulbStatus(addressIP, Mode1)
 
 
 

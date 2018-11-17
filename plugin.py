@@ -11,7 +11,7 @@
 # v0.1.1 - Add Scenes control
 # 
 """
-<plugin key="XiaomiPhilipsLEDBallLamp" name="Xiaomi Philips LED Ball Lamp" author="Deennoo" version="0.1.1" wikilink="https://github.com/rytilahti/python-miio" externallink="https://github.com/deennoo/domoticz-Xiaomi-Led-Lamp/tree/master">
+<plugin key="XiaomiPhilipsLEDBallLamp" name="Xiaomi Philips LED Ball" author="Deennoo" version="0.1.1" wikilink="https://github.com/rytilahti/python-miio" externallink="https://github.com/deennoo/domoticz-Xiaomi-Led-Lamp/tree/master">
     <params>
 		<param field="Address" label="IP Address" width="200px" required="true" default="127.0.0.1"/>
 		<param field="Mode1" label="Xiaomi Philips LED Ball Lamp token" default="" width="400px" required="true"  />
@@ -187,29 +187,38 @@ class BasePlugin:
         
         if Unit == self.UNIT_POWER_CONTROL:
             commandToCall += '--power=' + str(Command).upper()
-            
+        #widget dimmer brightness   
         elif Unit == self.UNIT_BRIGHTNESS:
             commandToCall += '--level=' + str(int(int(Level)))
-			
+		#widget dimmer with temp	
         elif Unit == self.UNIT_WTEMP:
             commandToCall += '--temp=' + str(int(int(Level)))
-			
+		
+		#widget selector scenes	
         elif Unit == self.UNIT_SCENES:
             commandToCall += '--scene=' + str(int(int(Level)/10))
-			
+		
+		#widget cccw	
         elif Unit == self.UNIT_CCCW:
-		#cccw cct
-          Hue_List = json.loads(Color)
+         
+		#OFF
+         if Command == "Off" :
+                  commandToCall += '--power=' + str(Command).upper()
+		#ON
+         elif Command == "On" :
+                  commandToCall += '--power=' + str(Command).upper()
+		
+		#Set Level
+         elif Command =="Set Level" :
+            commandToCall += '--level=' + str(int(int(Level)))
+		
+		#White Temp & Brightness
+         elif Command == "Set Color" :
+          Hue_List = json.loads(Color)		 
           if Hue_List['m'] == 2:            
            Temp = 100-((100*Hue_List['t'])/255);
            commandToCall += '--brightemp=' + str(int(int(Level))) + ','+ str(int(int(Temp)))
-		
-		
-            
-
-			
         
-			
         else:
             Domoticz.Log("onCommand called not found")
 
@@ -322,6 +331,7 @@ class BasePlugin:
 				
             try:
                 UpdateDevice(self.UNIT_BRIGHTNESS, 1, str(int(res.brightness)))
+                UpdateDevice(self.UNIT_CCCW, 1, str(int(res.brightness)))
             except KeyError:
                 pass  # No Brightness Value
 
@@ -329,6 +339,14 @@ class BasePlugin:
                 UpdateDevice(self.UNIT_SCENES, 1, str(int(res.scene)*10))
             except KeyError:
                 pass  # No Scene Value
+				
+            try:
+                if res.power == "on":
+                    UpdateDevice(self.UNIT_CCCW, 1, "Bulb ON")
+                elif res.power == "off":
+                    UpdateDevice(self.UNIT_CCCW, 0, "Bulb OFF")
+            except KeyError:
+                pass  # No power value
 
             self.doUpdate()
         except Exception as e:

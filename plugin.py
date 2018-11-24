@@ -9,7 +9,7 @@
 # fetching data Xiaomi Philips LED Ball Lamp print(MyBulb.status()) "<PhilipsBulbStatus power=on, brightness=9, color_temperature=9, scene=0, delay_off_countdown=0>"
 
 # v0.1.1 - Add Scenes control
-# v0.1.2 - add cccw widegt (remove on/off switch / brightdimmer / white temp dimmer  !!!!!! still remaining seg fault @ plugin restart
+# v0.1.2 - remove on/off switch, bright dimmer, temp dimmer, to use a cccw widget, update only if needed, sperate scenes widget status / !!! still segfault @ plugin restart
 """
 <plugin key="XiaomiPhilipsLEDBallLamp" name="Xiaomi Philips LED Ball Lamp" author="Deennoo" version="0.1.2" wikilink="https://github.com/rytilahti/python-miio" externallink="https://github.com/deennoo/domoticz-Xiaomi-Led-Lamp/tree/master">
     <params>
@@ -291,9 +291,14 @@ class BasePlugin:
             res = self.sensor_measurement(Parameters["Address"], Parameters["Mode1"])
 				
             try:
-                if res.power == "on":
+                if res.power == "on":                    
+                   if res.scene == "0":
+                    UpdateDevice(self.UNIT_SCENES, 0, str(int(res.scene)*10))
                     UpdateDevice(self.UNIT_CCCW, 1, str(int(res.brightness)))
+                   else:
                     UpdateDevice(self.UNIT_SCENES, 1, str(int(res.scene)*10))
+                    UpdateDevice(self.UNIT_CCCW, 1, str(int(res.brightness)))
+					
                 elif res.power == "off":
                     UpdateDevice(self.UNIT_CCCW, 0, str(int(res.brightness)))
                     UpdateDevice(self.UNIT_SCENES, 0, str(int(res.scene)*10))

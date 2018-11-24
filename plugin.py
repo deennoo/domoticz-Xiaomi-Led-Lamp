@@ -9,9 +9,9 @@
 # fetching data Xiaomi Philips LED Ball Lamp print(MyBulb.status()) "<PhilipsBulbStatus power=on, brightness=9, color_temperature=9, scene=0, delay_off_countdown=0>"
 
 # v0.1.1 - Add Scenes control
-# 
+# v0.1.2 - add cccw widegt (remove on/off switch / brightdimmer / white temp dimmer  !!!!!! still remaining seg fault @ plugin restart
 """
-<plugin key="XiaomiPhilipsLEDBallLamp" name="Xiaomi Philips LED Ball Lamp" author="Deennoo" version="0.1.1" wikilink="https://github.com/rytilahti/python-miio" externallink="https://github.com/deennoo/domoticz-Xiaomi-Led-Lamp/tree/master">
+<plugin key="XiaomiPhilipsLEDBallLamp" name="Xiaomi Philips LED Ball Lamp" author="Deennoo" version="0.1.2" wikilink="https://github.com/rytilahti/python-miio" externallink="https://github.com/deennoo/domoticz-Xiaomi-Led-Lamp/tree/master">
     <params>
 		<param field="Address" label="IP Address" width="200px" required="true" default="127.0.0.1"/>
 		<param field="Mode1" label="Xiaomi Philips LED Ball Lamp token" default="" width="400px" required="true"  />
@@ -26,6 +26,7 @@
 </plugin>
 """
 import Domoticz
+import json
 import sys
 import datetime
 import socket
@@ -60,7 +61,7 @@ class ConnectionErrorException(Exception):
 class BulbStatus:
     """Container for status reports from the Xiaomi Philips Bulb."""
 
-    def __init__(self, AddressIP, token):
+    def __init__(self, AddressIP, Mode1):
         """
         Response of script:
 
@@ -68,8 +69,8 @@ class BulbStatus:
         """
 
         addressIP = str(AddressIP)
-        token = str(token)
-        data = subprocess.check_output(['bash', '-c', './MyBulb.py ' + addressIP + ' ' + token], cwd=Parameters["HomeFolder"])
+        Mode1 = str(Mode1)
+        data = subprocess.check_output(['bash', '-c', './MyBulb.py ' + addressIP + ' ' + Mode1], cwd=Parameters["HomeFolder"])
         data = str(data.decode('utf-8'))
         if Parameters["Mode6"] == 'Debug':
             Domoticz.Debug(data[:30] + " .... " + data[-30:])
@@ -88,7 +89,7 @@ class BasePlugin:
 
     def __init__(self):
         # Consts
-        self.version = "0.1.1"
+        self.version = "0.1.2"
 
         self.EXCEPTIONS = {
             "SENSOR_NOT_FOUND":     1,
@@ -99,11 +100,8 @@ class BasePlugin:
         self.inProgress = False
 
         # Do not change below UNIT constants!
-        self.UNIT_POWER_CONTROL  = 1
-        self.UNIT_WTEMP          = 2
-        self.UNIT_BRIGHTNESS     = 3
-        self.UNIT_SCENES         = 4
-		
+        self.UNIT_SCENES         = 1
+        self.UNIT_CCCW           = 2		
 
         self.nextpoll = datetime.datetime.now()
         return
@@ -125,37 +123,28 @@ class BasePlugin:
         
         #create switches
         if (len(Devices) == 0):
-            Domoticz.Device(Name="Power", Unit=self.UNIT_POWER_CONTROL, TypeName="Switch").Create()
-            Domoticz.Device(Name="Brightness", Unit=self.UNIT_BRIGHTNESS, Type=244, Subtype=73, Switchtype=7).Create()			
-            Domoticz.Device(Name="White Temp", Unit=self.UNIT_WTEMP, Type=244, Subtype=73, Switchtype=7).Create()
+
             Options = {"Scenes": "|||||", "LevelNames": "Off|Bright|TV|Warm|Midnight", "LevelOffHidden": "true", "SelectorStyle": "0"}
             Domoticz.Device(Name="Scenes", Unit=self.UNIT_SCENES, Type=244, Subtype=62 , Switchtype=18, Options = Options).Create()
+            Domoticz.Device(Name="CCCW", Unit=self.UNIT_CCCW, Type=241, Subtype=8, Switchtype=7).Create()
 			
 			
             Domoticz.Log("Devices created.")
         else:
-            if (self.UNIT_POWER_CONTROL in Devices ):
-                Domoticz.Log("Device UNIT_POWER_CONTROL with id " + str(self.UNIT_POWER_CONTROL) + " exist")
-            else:
-                Domoticz.Device(Name="Power", Unit=self.UNIT_POWER_CONTROL, TypeName="Switch").Create()
-            
-            if (self.UNIT_BRIGHTNESS in Devices ):
-                Domoticz.Log("Device UNIT_BRIGHTNESS with id " + str(self.UNIT_BRIGHTNESS) + " exist")
-            else:
-                Domoticz.Device(Name="Brightness", Unit=self.UNIT_BRIGHTNESS, Type=244, Subtype=73, Switchtype=7).Create()
-			
-            if (self.UNIT_WTEMP in Devices ):
-                Domoticz.Log("Device UNIT_WTEMP with id " + str(self.UNIT_WTEMP) + " exist")
-            else:
-                Domoticz.Device(Name="White Temp", Unit=self.UNIT_WTEMP, Type=244, Subtype=73, Switchtype=7).Create()
-				
+
+		#Scenes		
             if (self.UNIT_SCENES in Devices ):
-                Domoticz.Log("Device UNIT_sCENES with id " + str(self.UNIT_SCENES) + " exist")
+                Domoticz.Log("Device UNIT_SCENES with id " + str(self.UNIT_SCENES) + " exist")
 				
             else:
                Options = {"Scenes": "|||||", "LevelNames": "Off|Bright|TV|Warm|Midnight", "LevelOffHidden": "true", "SelectorStyle": "0"}
                Domoticz.Device(Name="Scenes", Unit=self.UNIT_SCENES, Type=244, Subtype=62 , Switchtype=18, Options = Options).Create()				
-			
+         #CCCW
+            if (self.UNIT_CCCW in Devices ):
+                Domoticz.Log("Device UNIT_CCCW with id " + str(self.UNIT_CCCW) + " exist")
+				
+            else:
+               Domoticz.Device(Name="CCCW", Unit=self.UNIT_SCENES, Type=241, Subtype=8 , Switchtype=7).Create()	
             
 
         self.onHeartbeat(fetch=False)
@@ -170,24 +159,39 @@ class BasePlugin:
     def onMessage(self, Data, Status, Extra):
         Domoticz.Log("onMessage called")
 
-    def onCommand(self, Unit, Command, Level, Hue):
+    def onCommand(self, Unit, Command, Level, Color):
         Domoticz.Log(
-            "onCommand called for Unit " + str(Unit) + ": Parameter '" + str(Command) + "', Level: " + str(Level))
+            "onCommand called for Unit " + str(Unit) + ": Parameter '" + str(Command) + "', Level: " + str(Level)+ "', Color: " + str(Color))
 
-        # Parameters["Address"] - IP address, Parameters["Mode1"] - token
+        # Parameters["Address"] - IP address, Parameters["Token"] - token
         commandToCall = './MyBulb.py ' + Parameters["Address"] + ' ' + Parameters["Mode1"] + ' '
-        if Unit == self.UNIT_POWER_CONTROL:
-            commandToCall += '--power=' + str(Command).upper()
-			
-        elif Unit == self.UNIT_BRIGHTNESS:
-            commandToCall += '--level=' + str(int(int(Level)))
-			
-        elif Unit == self.UNIT_WTEMP:
-            commandToCall += '--temp=' + str(int(int(Level)))
-			
-        elif Unit == self.UNIT_SCENES:
+     
+		
+		#widget selector scenes	
+        if Unit == self.UNIT_SCENES:
             commandToCall += '--scene=' + str(int(int(Level)/10))
-			
+		
+		#widget cccw	
+        elif Unit == self.UNIT_CCCW:
+         
+		#OFF
+         if Command == "Off" :
+                  commandToCall += '--power=' + str(Command).upper()
+		#ON
+         elif Command == "On" :
+                  commandToCall += '--power=' + str(Command).upper()
+		
+		#Set Level
+         elif Command =="Set Level" :
+            commandToCall += '--level=' + str(int(int(Level)))
+		
+		#White Temp & Brightness
+         elif Command == "Set Color" :
+          Hue_List = json.loads(Color)		 
+          if Hue_List['m'] == 2:            
+           Temp = 100-((100*Hue_List['t'])/255);
+           commandToCall += '--brightemp=' + str(int(int(Level))) + ','+ str(int(int(Temp)))
+        
         else:
             Domoticz.Log("onCommand called not found")
 
@@ -198,6 +202,8 @@ class BasePlugin:
         if Parameters["Mode6"] == 'Debug':
             Domoticz.Debug(data)
         self.onHeartbeat(fetch=True)
+		
+    
 
     def onNotification(self, Name, Subject, Text, Status, Priority, Sound, ImageFile):
         Domoticz.Log("Notification: " + Name + "," + Subject + "," + Text + "," + Status + "," + str(
@@ -283,32 +289,16 @@ class BasePlugin:
             self.inProgress = True
 
             res = self.sensor_measurement(Parameters["Address"], Parameters["Mode1"])
-
-
-            try:
-                if res.power == "on":
-                    UpdateDevice(self.UNIT_POWER_CONTROL, 1, "Bulb ON")
-                elif res.power == "off":
-                    UpdateDevice(self.UNIT_POWER_CONTROL, 0, "Bulb OFF")
-
-            except KeyError:
-                pass  # No power value
-
-
-            try:
-                UpdateDevice(self.UNIT_WTEMP, 1, str(int(res.color_temperature)))
-            except KeyError:
-                pass  # No White Temp Value
 				
             try:
-                UpdateDevice(self.UNIT_BRIGHTNESS, 1, str(int(res.brightness)))
+                if res.power == "on":
+                    UpdateDevice(self.UNIT_CCCW, 1, str(int(res.brightness)))
+                    UpdateDevice(self.UNIT_SCENES, 1, str(int(res.scene)*10))
+                elif res.power == "off":
+                    UpdateDevice(self.UNIT_CCCW, 0, str(int(res.brightness)))
+                    UpdateDevice(self.UNIT_SCENES, 0, str(int(res.scene)*10))
             except KeyError:
-                pass  # No Brightness Value
-
-            try:
-                UpdateDevice(self.UNIT_SCENES, 1, str(int(res.scene)*10))
-            except KeyError:
-                pass  # No Scene Value
+                pass  # No power value
 
             self.doUpdate()
         except Exception as e:
@@ -322,24 +312,10 @@ class BasePlugin:
 
     def doUpdate(self):
         Domoticz.Log(("Starting device update"))
-        # for unit in self.variables:
-            # nV = self.variables[unit]['nValue']
-            # sV = self.variables[unit]['sValue']
 
-            ##cast float to str
-            # if isinstance(sV, float):
-                # sV = str(float("{0:.0f}".format(sV))).replace('.', ',')
-
-            ##Create device if required
-            # if sV:
-                # self.createDevice(key=unit)
-                # if unit in Devices:
-                    # Domoticz.Log(("Update unit=%d; nValue=%d; sValue=%s") % (unit, nV, sV))
-                    # Devices[unit].Update(nValue=nV, sValue=sV)
-
-    def sensor_measurement(self, addressIP, token):
+    def sensor_measurement(self, addressIP, Mode1):
         """current sensor measurements"""
-        return BulbStatus(addressIP, token)
+        return BulbStatus(addressIP, Mode1)
 
 
 
@@ -362,9 +338,9 @@ def onMessage(Data, Status, Extra):
     global _plugin
     _plugin.onMessage(Data, Status, Extra)
 
-def onCommand(Unit, Command, Level, Hue):
+def onCommand(Unit, Command, Level, Color):
     global _plugin
-    _plugin.onCommand(Unit, Command, Level, Hue)
+    _plugin.onCommand(Unit, Command, Level, Color)
 
 def onNotification(Name, Subject, Text, Status, Priority, Sound, ImageFile):
     global _plugin

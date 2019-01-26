@@ -66,12 +66,13 @@ class BulbStatus:
             startupinfo = subprocess.STARTUPINFO()
             cmd.insert(0, 'python')
         else:
+            startupinfo = None
             cmd.insert(0, 'bash')
             cmd.insert(1, '-c')
 
         try:
             data = subprocess.check_output(cmd, cwd=Parameters["HomeFolder"], startupinfo=startupinfo)
-        except subprocess.CalledProcessError as e:
+        except (subprocess.CalledProcessError, FileNotFoundError) as e:
             Domoticz.Error("Get status failed: " + str(e))
             return
         data = str(data.decode('utf-8'))
@@ -206,6 +207,7 @@ class BasePlugin:
             startupinfo = subprocess.STARTUPINFO()
             cmd.insert(0, 'python')
         else:
+            startupinfo = None
             cmd.insert(0, 'bash')
             cmd.insert(1, '-c')
 
@@ -214,7 +216,7 @@ class BasePlugin:
 
         try:
             data = subprocess.check_output(cmd, cwd=Parameters["HomeFolder"], startupinfo=startupinfo)
-        except subprocess.CalledProcessError as e:
+        except (subprocess.CalledProcessError, FileNotFoundError) as e:
             Domoticz.Error("Call command failed: " + str(e))
             return
         data = str(data.decode('utf-8'))

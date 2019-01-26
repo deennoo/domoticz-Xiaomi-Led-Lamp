@@ -311,21 +311,35 @@ class BasePlugin:
             self.inProgress = True
 
             res = self.sensor_measurement(Parameters["Address"], Parameters["Mode1"])
-				
+
             try:
-                if res.power == "on":                    
-                   if res.scene == "0":
-                    UpdateDevice(self.UNIT_SCENES, 0, str(int(res.scene)*10))
-                    UpdateDevice(self.UNIT_CCCW, 1, str(int(res.brightness)))
-                   else:
-                    UpdateDevice(self.UNIT_SCENES, 1, str(int(res.scene)*10))
-                    UpdateDevice(self.UNIT_CCCW, 1, str(int(res.brightness)))
-					
+                hue = (100 - int(res.color_temperature)) * 255 / 100
+                if int(hue) == 0:
+                    hue = 1
+                color = {}
+                color["m"] = 2 #ColorModeTemp
+                color["t"] = int(hue)
+                color["r"] = 0
+                color["g"] = 0
+                color["b"] = 0
+                color["cw"] = 0
+                color["ww"] = 0
+
+                if res.power == "on":
+                    if res.scene == "0":
+                        UpdateDevice(self.UNIT_SCENES, 0, str(int(res.scene)*10), color)
+                        UpdateDevice(self.UNIT_CCCW, 1, str(int(res.brightness)), color)
+                    else:
+                        UpdateDevice(self.UNIT_SCENES, 1, str(int(res.scene)*10), color)
+                        UpdateDevice(self.UNIT_CCCW, 1, str(int(res.brightness)), color)
+
                 elif res.power == "off":
-                    UpdateDevice(self.UNIT_CCCW, 0, str(int(res.brightness)))
-                    UpdateDevice(self.UNIT_SCENES, 0, str(int(res.scene)*10))
+                    UpdateDevice(self.UNIT_CCCW, 0, str(int(res.brightness)), color)
+                    UpdateDevice(self.UNIT_SCENES, 0, str(int(res.scene)*10), color)
             except (KeyError, AttributeError) as e:
                 Domoticz.Log("Update status failed: {0}".format(e))
+                UpdateDevice(self.UNIT_CCCW, 0, str(int(0)), '', True)
+                UpdateDevice(self.UNIT_SCENES, 0, str(int(0)), '', True)
                 pass  # No power value
 
             self.doUpdate()
@@ -345,7 +359,6 @@ class BasePlugin:
         """current sensor measurements"""
         Domoticz.Debug("sensor_measurement")
         return BulbStatus(addressIP, Mode1)
-
 
 
 global _plugin
@@ -398,10 +411,15 @@ def DumpConfigToLog():
         Domoticz.Debug("Device LastLevel: " + str(Devices[x].LastLevel))
     return
 
-def UpdateDevice(Unit, nValue, sValue):
+def UpdateDevice(Unit, nValue, sValue, color='', bTimeout=False):
     # Make sure that the Domoticz device still exists (they can be deleted) before updating it
     if (Unit in Devices):
-        if (Devices[Unit].nValue != nValue) or (Devices[Unit].sValue != sValue):
-            Devices[Unit].Update(nValue=nValue, sValue=str(sValue))
-            Domoticz.Log("Update " + str(nValue) + ":'" + str(sValue) + "' (" + Devices[Unit].Name + ")")
+        if bTimeout == True:
+            Devices[Unit].Update(nValue=0, sValue='0', TimedOut=True)
+            Domoticz.Log("Problem with {0}".format(Devices[Unit].Name))
+
+        elif (Devices[Unit].nValue != nValue) or (Devices[Unit].sValue != sValue) or Devices[Unit].Color != color:
+            sColor = json.dumps(color)
+            Devices[Unit].Update(nValue=nValue, sValue=str(sValue), Color=sColor, TimedOut=False)
+            Domoticz.Log("Update {0}: '{1}' '{2}' ({3})".format(nValue, sValue, sColor, Devices[Unit].Name))
     return

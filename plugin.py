@@ -31,7 +31,6 @@ import sys
 import datetime
 import socket
 import subprocess
-import site
 
 class UnauthorizedException(Exception):
     def __init__(self, expression, message):
@@ -73,11 +72,11 @@ class BulbStatus:
         try:
             data = subprocess.check_output(cmd, cwd=Parameters["HomeFolder"], startupinfo=startupinfo)
         except (subprocess.CalledProcessError, FileNotFoundError) as e:
-            Domoticz.Error("Get status failed: " + str(e))
+            Domoticz.Log("Get status failed: " + str(e))
             return
         data = str(data.decode('utf-8'))
         if Parameters["Mode6"] == 'Debug':
-            Domoticz.Debug(data[:30] + " .... " + data[-30:])
+            Domoticz.Debug(str(data))
         data = data[19:-2]
         data = data.replace(' ', '')
         data = dict(item.split("=") for item in data.split(","))
@@ -295,7 +294,7 @@ class BasePlugin:
 
 
     def onHeartbeat(self, fetch=False):
-        Domoticz.Debug("onHeartbeat called")
+        Domoticz.Debug("onHeartbeat called, fetch " + str(fetch))
         now = datetime.datetime.now()
 
         if fetch == False:
@@ -326,7 +325,7 @@ class BasePlugin:
                     UpdateDevice(self.UNIT_CCCW, 0, str(int(res.brightness)))
                     UpdateDevice(self.UNIT_SCENES, 0, str(int(res.scene)*10))
             except (KeyError, AttributeError) as e:
-                Domoticz.Error("Update status failed: {0}".format(e))
+                Domoticz.Log("Update status failed: {0}".format(e))
                 pass  # No power value
 
             self.doUpdate()
@@ -340,10 +339,11 @@ class BasePlugin:
 
 
     def doUpdate(self):
-        Domoticz.Log(("Starting device update"))
+        Domoticz.Log("Starting device update")
 
     def sensor_measurement(self, addressIP, Mode1):
         """current sensor measurements"""
+        Domoticz.Debug("sensor_measurement")
         return BulbStatus(addressIP, Mode1)
 
 

@@ -72,7 +72,7 @@ class BulbStatus:
         try:
             data = subprocess.check_output(cmd, cwd=Parameters["HomeFolder"], startupinfo=startupinfo)
         except subprocess.CalledProcessError as e:
-            Domoticz.Log("Get status failed: " + str(e))
+            Domoticz.Error("Get status failed: " + str(e))
             return
         data = str(data.decode('utf-8'))
         if Parameters["Mode6"] == 'Debug':
@@ -215,7 +215,7 @@ class BasePlugin:
         try:
             data = subprocess.check_output(cmd, cwd=Parameters["HomeFolder"], startupinfo=startupinfo)
         except subprocess.CalledProcessError as e:
-            Domoticz.Log("Call command failed: " + str(e))
+            Domoticz.Error("Call command failed: " + str(e))
             return
         data = str(data.decode('utf-8'))
         if Parameters["Mode6"] == 'Debug':
@@ -321,7 +321,8 @@ class BasePlugin:
                 elif res.power == "off":
                     UpdateDevice(self.UNIT_CCCW, 0, str(int(res.brightness)))
                     UpdateDevice(self.UNIT_SCENES, 0, str(int(res.scene)*10))
-            except KeyError:
+            except (KeyError, AttributeError) as e:
+                Domoticz.Error("Update status failed: {0}".format(e))
                 pass  # No power value
 
             self.doUpdate()

@@ -164,8 +164,8 @@ class BasePlugin:
         Domoticz.Log("onMessage called")
 
     def onCommand(self, Unit, Command, Level, Color):
-        Domoticz.Log(
-            "onCommand called for Unit " + str(Unit) + ": Parameter '" + str(Command) + "', Level: " + str(Level)+ "', Color: " + str(Color))
+        # onCommand called for Unit 2 cmd 'Set Color' Level '80' Color '{"b":0,"cw":136,"g":0,"m":2,"r":0,"t":119,"ww":119}'
+        Domoticz.Log("onCommand called for Unit {0} cmd '{1}' Level '{2}' Color '{3}'".format(Unit, Command, Level, Color))
 
         # Parameters["Address"] - IP address, Parameters["Token"] - token
         cmd = ['./MyBulb.py', str(Parameters["Address"]), str(Parameters["Mode1"])]
@@ -187,21 +187,23 @@ class BasePlugin:
                 cmd.append('--power')
                 cmd.append(str(Command).upper())
 
-		#Set Level
-        elif Command =="Set Level" :
-            cmd.append('--level')
-            cmd.append(str(int(int(Level))))
+		    #Set Level
+            elif Command =="Set Level" :
+                cmd.append('--level')
+                cmd.append(str(Level))
 
-		#White Temp & Brightness
-        elif Command == "Set Color" :
-            Hue_List = json.loads(Color)
-            if Hue_List['m'] == 2:
-                Temp = 100-((100*Hue_List['t'])/255);
-                cmd.append('--brightemp')
-                cmd.append(str(int(int(Level))) + ','+ str(int(int(Temp))))
+		    #White Temp & Brightness
+            elif Command == "Set Color" :
+                Hue_List = json.loads(Color)
+                if Hue_List['m'] == 2:
+                    Temp = 100-((100*Hue_List['t'])/255);
+                    if int(Temp) == 0:
+                        Temp = 1 # 0 is not allowed
+                    cmd.append('--brightemp')
+                    cmd.append(str(Level) + ','+ str(int(Temp)))
 
-            else:
-                Domoticz.Log("onCommand called not found")
+                else:
+                    Domoticz.Log("onCommand called not found")
 
         if sys.platform == 'win32':
             startupinfo = subprocess.STARTUPINFO()

@@ -9,12 +9,11 @@ Fully base on : https://github.com/kofec/domoticz-AirPurifier
 
 * Make sure your Domoticz instance supports Domoticz Plugin System - see more https://www.domoticz.com/wiki/Using_Python_plugins
 
-- Install Python-miio 
-Linux:
+Install Python-miio (Linux):
 ```
 sudo pip3 install -U python-miio
 ```
-Windows:
+Install Python-miio (Windows):
 ```
 pip3 install -U python-miio
 ```
@@ -29,8 +28,7 @@ Give right to MyBulb.py (only in Linux)
 ```
 sudo chmod 777 /home/pi/domoticz/plugins/domoticz-Xiaomi-Led-Lamp/MyBulb.py
 ```
-and restart Domoticz
-Linux:
+and restart Domoticz (Linux):
 ```
 sudo service domoticz.sh restart
 ```

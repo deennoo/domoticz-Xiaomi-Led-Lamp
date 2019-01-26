@@ -32,14 +32,6 @@ import datetime
 import socket
 import subprocess
 import site
-path=''
-path=site.getsitepackages()
-
-for i in path:
-    sys.path.append(i)
-
-import miio.philips_bulb
-
 
 class UnauthorizedException(Exception):
     def __init__(self, expression, message):

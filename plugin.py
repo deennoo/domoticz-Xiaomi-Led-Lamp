@@ -60,9 +60,20 @@ class BulbStatus:
 		   "<PhilipsBulbStatus power=on, brightness=9, color_temperature=9, scene=0, delay_off_countdown=0>"
         """
 
-        addressIP = str(AddressIP)
-        Mode1 = str(Mode1)
-        data = subprocess.check_output(['bash', '-c', './MyBulb.py ' + addressIP + ' ' + Mode1], cwd=Parameters["HomeFolder"])
+        cmd = ['./MyBulb.py', str(AddressIP), str(Mode1)]
+
+        if sys.platform == 'win32':
+            startupinfo = subprocess.STARTUPINFO()
+            cmd.insert(0, 'python')
+        else:
+            cmd.insert(0, 'bash')
+            cmd.insert(1, '-c')
+
+        try:
+            data = subprocess.check_output(cmd, cwd=Parameters["HomeFolder"], startupinfo=startupinfo)
+        except subprocess.CalledProcessError as e:
+            Domoticz.Log("Get status failed: " + str(e))
+            return
         data = str(data.decode('utf-8'))
         if Parameters["Mode6"] == 'Debug':
             Domoticz.Debug(data[:30] + " .... " + data[-30:])
@@ -100,7 +111,7 @@ class BasePlugin:
 
 
     def onStart(self):
-        Domoticz.Debug("onStart called")
+        Domoticz.Log("onStart called")
         if Parameters["Mode6"] == 'Debug':
             self.debug = True
             Domoticz.Debugging(1)
@@ -156,40 +167,56 @@ class BasePlugin:
             "onCommand called for Unit " + str(Unit) + ": Parameter '" + str(Command) + "', Level: " + str(Level)+ "', Color: " + str(Color))
 
         # Parameters["Address"] - IP address, Parameters["Token"] - token
-        commandToCall = './MyBulb.py ' + Parameters["Address"] + ' ' + Parameters["Mode1"] + ' '
-     
-		
+        cmd = ['./MyBulb.py', str(Parameters["Address"]), str(Parameters["Mode1"])]
+
 		#widget selector scenes	
         if Unit == self.UNIT_SCENES:
-            commandToCall += '--scene=' + str(int(int(Level)/10))
-		
+            cmd.append('--scene')
+            cmd.append(str(int(int(Level)/10)))
+
 		#widget cccw	
         elif Unit == self.UNIT_CCCW:
-         
-		#OFF
-         if Command == "Off" :
-                  commandToCall += '--power=' + str(Command).upper()
-		#ON
-         elif Command == "On" :
-                  commandToCall += '--power=' + str(Command).upper()
-		
+
+		    #OFF
+            if Command == "Off" :
+                cmd.append('--power')
+                cmd.append(str(Command).upper())
+		    #ON
+            elif Command == "On" :
+                cmd.append('--power')
+                cmd.append(str(Command).upper())
+
 		#Set Level
-         elif Command =="Set Level" :
-            commandToCall += '--level=' + str(int(int(Level)))
-		
+        elif Command =="Set Level" :
+            cmd.append('--level')
+            cmd.append(str(int(int(Level))))
+
 		#White Temp & Brightness
-         elif Command == "Set Color" :
-          Hue_List = json.loads(Color)		 
-          if Hue_List['m'] == 2:            
-           Temp = 100-((100*Hue_List['t'])/255);
-           commandToCall += '--brightemp=' + str(int(int(Level))) + ','+ str(int(int(Temp)))
-        
+        elif Command == "Set Color" :
+            Hue_List = json.loads(Color)
+            if Hue_List['m'] == 2:
+                Temp = 100-((100*Hue_List['t'])/255);
+                cmd.append('--brightemp')
+                cmd.append(str(int(int(Level))) + ','+ str(int(int(Temp))))
+
+            else:
+                Domoticz.Log("onCommand called not found")
+
+        if sys.platform == 'win32':
+            startupinfo = subprocess.STARTUPINFO()
+            cmd.insert(0, 'python')
         else:
-            Domoticz.Log("onCommand called not found")
+            cmd.insert(0, 'bash')
+            cmd.insert(1, '-c')
 
         if Parameters["Mode6"] == 'Debug':
-            Domoticz.Debug("Call command: " + commandToCall)
-        data = subprocess.check_output(['bash', '-c', commandToCall], cwd=Parameters["HomeFolder"])
+            Domoticz.Debug("Call command: " + str(cmd))
+
+        try:
+            data = subprocess.check_output(cmd, cwd=Parameters["HomeFolder"], startupinfo=startupinfo)
+        except subprocess.CalledProcessError as e:
+            Domoticz.Log("Call command failed: " + str(e))
+            return
         data = str(data.decode('utf-8'))
         if Parameters["Mode6"] == 'Debug':
             Domoticz.Debug(data)

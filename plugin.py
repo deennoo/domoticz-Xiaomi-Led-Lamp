@@ -31,15 +31,6 @@ import sys
 import datetime
 import socket
 import subprocess
-import site
-path=''
-path=site.getsitepackages()
-
-for i in path:
-    sys.path.append(i)
-
-import miio.philips_bulb
-
 
 class UnauthorizedException(Exception):
     def __init__(self, expression, message):
@@ -68,12 +59,24 @@ class BulbStatus:
 		   "<PhilipsBulbStatus power=on, brightness=9, color_temperature=9, scene=0, delay_off_countdown=0>"
         """
 
-        addressIP = str(AddressIP)
-        Mode1 = str(Mode1)
-        data = subprocess.check_output(['bash', '-c', './MyBulb.py ' + addressIP + ' ' + Mode1], cwd=Parameters["HomeFolder"])
+        cmd = ['./MyBulb.py', str(AddressIP), str(Mode1)]
+
+        if sys.platform == 'win32':
+            startupinfo = subprocess.STARTUPINFO()
+            cmd.insert(0, 'python')
+        else:
+            startupinfo = None
+            cmd.insert(0, 'bash')
+            cmd.insert(1, '-c')
+
+        try:
+            data = subprocess.check_output(cmd, cwd=Parameters["HomeFolder"], startupinfo=startupinfo)
+        except (subprocess.CalledProcessError, FileNotFoundError) as e:
+            Domoticz.Log("Get status failed: " + str(e))
+            return
         data = str(data.decode('utf-8'))
         if Parameters["Mode6"] == 'Debug':
-            Domoticz.Debug(data[:30] + " .... " + data[-30:])
+            Domoticz.Debug(str(data))
         data = data[19:-2]
         data = data.replace(' ', '')
         data = dict(item.split("=") for item in data.split(","))
@@ -108,7 +111,7 @@ class BasePlugin:
 
 
     def onStart(self):
-        Domoticz.Debug("onStart called")
+        Domoticz.Log("onStart called")
         if Parameters["Mode6"] == 'Debug':
             self.debug = True
             Domoticz.Debugging(1)
@@ -160,44 +163,63 @@ class BasePlugin:
         Domoticz.Log("onMessage called")
 
     def onCommand(self, Unit, Command, Level, Color):
-        Domoticz.Log(
-            "onCommand called for Unit " + str(Unit) + ": Parameter '" + str(Command) + "', Level: " + str(Level)+ "', Color: " + str(Color))
+        # onCommand called for Unit 2 cmd 'Set Color' Level '80' Color '{"b":0,"cw":136,"g":0,"m":2,"r":0,"t":119,"ww":119}'
+        Domoticz.Log("onCommand called for Unit {0} cmd '{1}' Level '{2}' Color '{3}'".format(Unit, Command, Level, Color))
 
         # Parameters["Address"] - IP address, Parameters["Token"] - token
-        commandToCall = './MyBulb.py ' + Parameters["Address"] + ' ' + Parameters["Mode1"] + ' '
-     
-		
+        cmd = ['./MyBulb.py', str(Parameters["Address"]), str(Parameters["Mode1"])]
+
 		#widget selector scenes	
         if Unit == self.UNIT_SCENES:
-            commandToCall += '--scene=' + str(int(int(Level)/10))
-		
+            cmd.append('--scene')
+            cmd.append(str(int(int(Level)/10)))
+
 		#widget cccw	
         elif Unit == self.UNIT_CCCW:
-         
-		#OFF
-         if Command == "Off" :
-                  commandToCall += '--power=' + str(Command).upper()
-		#ON
-         elif Command == "On" :
-                  commandToCall += '--power=' + str(Command).upper()
-		
-		#Set Level
-         elif Command =="Set Level" :
-            commandToCall += '--level=' + str(int(int(Level)))
-		
-		#White Temp & Brightness
-         elif Command == "Set Color" :
-          Hue_List = json.loads(Color)		 
-          if Hue_List['m'] == 2:            
-           Temp = 100-((100*Hue_List['t'])/255);
-           commandToCall += '--brightemp=' + str(int(int(Level))) + ','+ str(int(int(Temp)))
-        
+
+		    #OFF
+            if Command == "Off" :
+                cmd.append('--power')
+                cmd.append(str(Command).upper())
+		    #ON
+            elif Command == "On" :
+                cmd.append('--power')
+                cmd.append(str(Command).upper())
+
+		    #Set Level
+            elif Command =="Set Level" :
+                cmd.append('--level')
+                cmd.append(str(Level))
+
+		    #White Temp & Brightness
+            elif Command == "Set Color" :
+                Hue_List = json.loads(Color)
+                if Hue_List['m'] == 2:
+                    Temp = 100-((100*Hue_List['t'])/255);
+                    if int(Temp) == 0:
+                        Temp = 1 # 0 is not allowed
+                    cmd.append('--brightemp')
+                    cmd.append(str(Level) + ','+ str(int(Temp)))
+
+                else:
+                    Domoticz.Log("onCommand called not found")
+
+        if sys.platform == 'win32':
+            startupinfo = subprocess.STARTUPINFO()
+            cmd.insert(0, 'python')
         else:
-            Domoticz.Log("onCommand called not found")
+            startupinfo = None
+            cmd.insert(0, 'bash')
+            cmd.insert(1, '-c')
 
         if Parameters["Mode6"] == 'Debug':
-            Domoticz.Debug("Call command: " + commandToCall)
-        data = subprocess.check_output(['bash', '-c', commandToCall], cwd=Parameters["HomeFolder"])
+            Domoticz.Debug("Call command: " + str(cmd))
+
+        try:
+            data = subprocess.check_output(cmd, cwd=Parameters["HomeFolder"], startupinfo=startupinfo)
+        except (subprocess.CalledProcessError, FileNotFoundError) as e:
+            Domoticz.Error("Call command failed: " + str(e))
+            return
         data = str(data.decode('utf-8'))
         if Parameters["Mode6"] == 'Debug':
             Domoticz.Debug(data)
@@ -272,7 +294,7 @@ class BasePlugin:
 
 
     def onHeartbeat(self, fetch=False):
-        Domoticz.Debug("onHeartbeat called")
+        Domoticz.Debug("onHeartbeat called, fetch " + str(fetch))
         now = datetime.datetime.now()
 
         if fetch == False:
@@ -289,20 +311,35 @@ class BasePlugin:
             self.inProgress = True
 
             res = self.sensor_measurement(Parameters["Address"], Parameters["Mode1"])
-				
+
             try:
-                if res.power == "on":                    
-                   if res.scene == "0":
-                    UpdateDevice(self.UNIT_SCENES, 0, str(int(res.scene)*10))
-                    UpdateDevice(self.UNIT_CCCW, 1, str(int(res.brightness)))
-                   else:
-                    UpdateDevice(self.UNIT_SCENES, 1, str(int(res.scene)*10))
-                    UpdateDevice(self.UNIT_CCCW, 1, str(int(res.brightness)))
-					
+                hue = (100 - int(res.color_temperature)) * 255 / 100
+                if int(hue) == 0:
+                    hue = 1
+                color = {}
+                color["m"] = 2 #ColorModeTemp
+                color["t"] = int(hue)
+                color["r"] = 0
+                color["g"] = 0
+                color["b"] = 0
+                color["cw"] = 0
+                color["ww"] = 0
+
+                if res.power == "on":
+                    if res.scene == "0":
+                        UpdateDevice(self.UNIT_SCENES, 0, str(int(res.scene)*10), color)
+                        UpdateDevice(self.UNIT_CCCW, 1, str(int(res.brightness)), color)
+                    else:
+                        UpdateDevice(self.UNIT_SCENES, 1, str(int(res.scene)*10), color)
+                        UpdateDevice(self.UNIT_CCCW, 1, str(int(res.brightness)), color)
+
                 elif res.power == "off":
-                    UpdateDevice(self.UNIT_CCCW, 0, str(int(res.brightness)))
-                    UpdateDevice(self.UNIT_SCENES, 0, str(int(res.scene)*10))
-            except KeyError:
+                    UpdateDevice(self.UNIT_CCCW, 0, str(int(res.brightness)), color)
+                    UpdateDevice(self.UNIT_SCENES, 0, str(int(res.scene)*10), color)
+            except (KeyError, AttributeError) as e:
+                Domoticz.Log("Update status failed: {0}".format(e))
+                UpdateDevice(self.UNIT_CCCW, 0, str(int(0)), '', True)
+                UpdateDevice(self.UNIT_SCENES, 0, str(int(0)), '', True)
                 pass  # No power value
 
             self.doUpdate()
@@ -316,12 +353,12 @@ class BasePlugin:
 
 
     def doUpdate(self):
-        Domoticz.Log(("Starting device update"))
+        Domoticz.Log("Starting device update")
 
     def sensor_measurement(self, addressIP, Mode1):
         """current sensor measurements"""
+        Domoticz.Debug("sensor_measurement")
         return BulbStatus(addressIP, Mode1)
-
 
 
 global _plugin
@@ -374,10 +411,15 @@ def DumpConfigToLog():
         Domoticz.Debug("Device LastLevel: " + str(Devices[x].LastLevel))
     return
 
-def UpdateDevice(Unit, nValue, sValue):
+def UpdateDevice(Unit, nValue, sValue, color='', bTimeout=False):
     # Make sure that the Domoticz device still exists (they can be deleted) before updating it
     if (Unit in Devices):
-        if (Devices[Unit].nValue != nValue) or (Devices[Unit].sValue != sValue):
-            Devices[Unit].Update(nValue=nValue, sValue=str(sValue))
-            Domoticz.Log("Update " + str(nValue) + ":'" + str(sValue) + "' (" + Devices[Unit].Name + ")")
+        if bTimeout == True:
+            Devices[Unit].Update(nValue=0, sValue='0', TimedOut=True)
+            Domoticz.Log("Problem with {0}".format(Devices[Unit].Name))
+
+        elif (Devices[Unit].nValue != nValue) or (Devices[Unit].sValue != sValue) or Devices[Unit].Color != color:
+            sColor = json.dumps(color)
+            Devices[Unit].Update(nValue=nValue, sValue=str(sValue), Color=sColor, TimedOut=False)
+            Domoticz.Log("Update {0}: '{1}' '{2}' ({3})".format(nValue, sValue, sColor, Devices[Unit].Name))
     return

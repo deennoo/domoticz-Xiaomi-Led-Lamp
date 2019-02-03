@@ -66,8 +66,6 @@ class BulbStatus:
             cmd.insert(0, 'python')
         else:
             startupinfo = None
-            cmd.insert(0, 'bash')
-            cmd.insert(1, '-c')
 
         try:
             data = subprocess.check_output(cmd, cwd=Parameters["HomeFolder"], startupinfo=startupinfo)
@@ -209,8 +207,6 @@ class BasePlugin:
             cmd.insert(0, 'python')
         else:
             startupinfo = None
-            cmd.insert(0, 'bash')
-            cmd.insert(1, '-c')
 
         if Parameters["Mode6"] == 'Debug':
             Domoticz.Debug("Call command: " + str(cmd))

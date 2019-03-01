@@ -13,8 +13,8 @@ import miio.philips_bulb
 parser = argparse.ArgumentParser(description='Script which comunicate with PhilipsBulb.')
 parser.add_argument('IPaddress', help='IP address of PhilipsBulb' )
 parser.add_argument('token', help='token to login to device')
-parser.add_argument('--level', type=int, choices=range(0, 100), help='choose level')
-parser.add_argument('--temp', type=int, choices=range(0, 100), help='choose White Temp')
+parser.add_argument('--level', type=int, choices=range(1, 99), help='choose level')
+parser.add_argument('--temp', type=int, choices=range(1, 99), help='choose White Temp')
 parser.add_argument('--power', choices=['ON', 'OFF'], help='power ON/OFF')
 parser.add_argument('--debug', action='store_true', help='if define more output is printed')
 parser.add_argument('--scene', type=int, choices=range(1, 5), help='choose scene')
@@ -50,6 +50,3 @@ if args.power:
         MyBulb.off()
 
 print(MyBulb.status())
-
-
-

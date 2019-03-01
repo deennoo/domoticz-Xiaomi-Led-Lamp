@@ -175,6 +175,12 @@ class BasePlugin:
 		#widget cccw	
         elif Unit == self.UNIT_CCCW:
 
+            #border limits check
+            if int(Level) < 1 :
+                Level = 1
+            elif int(Level) > 99 :
+                Level = 99
+
 		    #OFF
             if Command == "Off" :
                 cmd.append('--power')

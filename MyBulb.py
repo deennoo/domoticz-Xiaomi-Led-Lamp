@@ -1,4 +1,7 @@
 #!/usr/bin/python3
+#
+# you can use this script to verify token and IP
+#
 
 import sys
 import argparse
@@ -19,7 +22,7 @@ parser.add_argument('--power', choices=['ON', 'OFF'], help='power ON/OFF')
 parser.add_argument('--debug', action='store_true', help='if define more output is printed')
 parser.add_argument('--scene', type=int, choices=range(1, 5), help='choose scene')
 # --brightemp = set_brightness_and_color_temperature()
-parser.add_argument('--brightemp', type=str, help='choose Brightness and White Temp')
+parser.add_argument('--brightemp', type=str, help='choose Brightness and White Temp as comma separated')
 
 args = parser.parse_args()
 if args.debug:

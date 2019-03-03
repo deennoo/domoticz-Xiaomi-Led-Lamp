@@ -8,6 +8,7 @@ Fully base on : https://github.com/kofec/domoticz-AirPurifier
 ## Installation
 
 * Make sure your Domoticz instance supports Domoticz Plugin System - see more https://www.domoticz.com/wiki/Using_Python_plugins
+* This version only for development branch of Domoticz
 
 Install Python-miio (Linux):
 ```
